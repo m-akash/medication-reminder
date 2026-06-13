@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MedicineReminder.Contracts.Medicines;
 using MedicineReminder.Contracts.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MedicineReminder.Controllers;
@@ -12,6 +13,7 @@ namespace MedicineReminder.Controllers;
 /// </summary>
 [Route("api/refill-reminders")]
 [ApiController]
+[Authorize]
 public class RefillController : ControllerBase
 {
     private readonly IMedicineAppService _medicineAppService;
@@ -22,12 +24,12 @@ public class RefillController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/refill-reminders?userEmail=test@example.com
-    /// Get refill reminders for user
+    /// GET /api/refill-reminders
+    /// Get refill reminders for current authenticated user
     /// </summary>
     [HttpGet]
-    public async Task<List<RefillReminderDto>> GetRefillRemindersAsync([FromQuery] string userEmail)
+    public async Task<List<RefillReminderDto>> GetRefillRemindersForCurrentUserAsync()
     {
-        return await _medicineAppService.GetRefillRemindersAsync(userEmail);
+        return await _medicineAppService.GetRefillRemindersForCurrentUserAsync();
     }
 }

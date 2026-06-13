@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MedicineReminder.Contracts.Medicines;
 using MedicineReminder.Contracts.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MedicineReminder.Controllers;
@@ -13,6 +14,7 @@ namespace MedicineReminder.Controllers;
 /// </summary>
 [Route("api/medicine")]
 [ApiController]
+[Authorize]
 public class MedicineController : ControllerBase
 {
     private readonly IMedicineAppService _medicineAppService;
@@ -124,30 +126,14 @@ public class MedicineController : ControllerBase
     {
         return await _medicineAppService.ToggleReminderStatusAsync(id, input);
     }
-}
-
-/// <summary>
-/// API Controller for Medicine User endpoints
-/// Routes: /api/medicine/user/:userEmail
-/// </summary>
-[Route("api/medicine/user/{userEmail}")]
-[ApiController]
-public class MedicineUserController : ControllerBase
-{
-    private readonly IMedicineAppService _medicineAppService;
-
-    public MedicineUserController(IMedicineAppService medicineAppService)
-    {
-        _medicineAppService = medicineAppService;
-    }
 
     /// <summary>
-    /// GET /api/medicine/user/:userEmail
-    /// Get medicines by user email
+    /// GET /api/medicine
+    /// Get all medicines for the currently authenticated user
     /// </summary>
     [HttpGet]
-    public async Task<List<MedicineDto>> GetMedicineByEmailAsync(string userEmail)
+    public async Task<List<MedicineDto>> GetMedicinesForCurrentUserAsync()
     {
-        return await _medicineAppService.GetMedicineByEmailAsync(userEmail);
+        return await _medicineAppService.GetMedicinesForCurrentUserAsync();
     }
 }

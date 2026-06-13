@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MedicineReminder.Contracts.Notifications;
 using MedicineReminder.Contracts.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MedicineReminder.Controllers;
@@ -13,6 +14,7 @@ namespace MedicineReminder.Controllers;
 /// </summary>
 [Route("api/notifications")]
 [ApiController]
+[Authorize]
 public class NotificationController : ControllerBase
 {
     private readonly INotificationAppService _notificationAppService;
@@ -20,6 +22,16 @@ public class NotificationController : ControllerBase
     public NotificationController(INotificationAppService notificationAppService)
     {
         _notificationAppService = notificationAppService;
+    }
+
+    /// <summary>
+    /// GET /api/notifications
+    /// Get notifications for the currently authenticated user
+    /// </summary>
+    [HttpGet]
+    public async Task<List<NotificationDto>> GetNotificationsForCurrentUserAsync()
+    {
+        return await _notificationAppService.GetNotificationsForCurrentUserAsync();
     }
 
     /// <summary>
@@ -43,38 +55,12 @@ public class NotificationController : ControllerBase
     }
 
     /// <summary>
-    /// PATCH /api/notifications/:userEmail/read-all
-    /// Mark all notifications as read
+    /// PATCH /api/notifications/read-all
+    /// Mark all notifications as read for current authenticated user
     /// </summary>
-    [HttpPatch("{userEmail}/read-all")]
-    public async Task MarkAllNotificationsAsReadAsync(string userEmail)
+    [HttpPatch("read-all")]
+    public async Task MarkAllNotificationsAsReadForCurrentUserAsync()
     {
-        await _notificationAppService.MarkAllNotificationsAsReadAsync(userEmail);
-    }
-}
-
-/// <summary>
-/// API Controller for Notifications User endpoints
-/// Routes: /api/notifications/:userEmail
-/// </summary>
-[Route("api/notifications/{userEmail}")]
-[ApiController]
-public class NotificationsUserController : ControllerBase
-{
-    private readonly INotificationAppService _notificationAppService;
-
-    public NotificationsUserController(INotificationAppService notificationAppService)
-    {
-        _notificationAppService = notificationAppService;
-    }
-
-    /// <summary>
-    /// GET /api/notifications/:userEmail
-    /// Get notifications by user email
-    /// </summary>
-    [HttpGet]
-    public async Task<List<NotificationDto>> GetNotificationsAsync(string userEmail)
-    {
-        return await _notificationAppService.GetNotificationsAsync(userEmail);
+        await _notificationAppService.MarkAllNotificationsAsReadForCurrentUserAsync();
     }
 }
