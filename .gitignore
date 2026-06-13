@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────
+# Root .gitignore — medication-reminder (ASP.NET Core + Angular)
+# Protects secrets and build artifacts regardless of subtree.
+# ─────────────────────────────────────────────────────────────
+
+# === Secrets / credentials (NEVER commit) ===
+**/appsettings.secrets.json
+**/appsettings.Local.json
+**/secrets.json
+*.pfx
+*.p12
+*.key
+*.pem
+.env
+.env.*
+# NuGet API keys / user secrets
+*.nuget.config.local
+secrets.*
+
+# === OS files ===
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# === IDE / editors ===
+.idea/
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.user
+*.suo
+*.userprefs
+
+# === .NET / ASP.NET build artifacts ===
+**/bin/
+**/obj/
+**/artifacts/
+*.dll
+*.pdb
+*.exe
+TestResults/
+project.lock.json
+
+# === Angular / Node ===
+**/node_modules/
+**/dist/
+**/.angular/cache
+**/tmp/
+**/out-tsc/
+npm-debug.log*
+yarn-error.log
+**/coverage/
+
+# === Logs ===
+*.log
+**/Logs/
