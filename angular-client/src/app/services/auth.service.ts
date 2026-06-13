@@ -1,14 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of, throwError } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { User } from '../models/user.model';
 
 interface AuthResponse {
-  accessToken: string;
-  refreshToken?: string;
-  user?: User;
+  // OpenIddict /connect/token returns standard OAuth snake_case fields.
+  access_token: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
 }
 
 interface LoginRequest {
@@ -51,7 +53,7 @@ export class AuthService {
       username: email,
       password: password,
       grant_type: 'password',
-      client_id: 'MedicineReminder_Swagger',
+      client_id: 'MedicineReminder_App',
       scope: 'MedicineReminder offline_access'
     };
 
@@ -59,11 +61,11 @@ export class AuthService {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     }).pipe(
       tap(response => {
-        localStorage.setItem(this.tokenKey, response.accessToken);
-        // Fetch user info after login
-        this.getUserByEmail(email).subscribe();
+        localStorage.setItem(this.tokenKey, response.access_token);
       }),
-      map(() => this.currentUserSubject.value!),
+      // Only resolve once the user profile has been loaded, so the caller
+      // navigates with a fully populated currentUser (no race with ngOnInit).
+      switchMap(() => this.fetchCurrentUser()),
       catchError(error => {
         console.error('Login error:', error);
         return throwError(() => new Error('Login failed'));
@@ -72,19 +74,23 @@ export class AuthService {
   }
 
   register(name: string, email: string, password: string): Observable<User> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/api/account/register`, {
+    // ABP's built-in RegisterDto: AppName, UserName, EmailAddress, Password
+    return this.http.post(`${this.apiUrl}/api/account/register`, {
+      appName: 'MedicineReminder',
+      userName: email,
+      emailAddress: email,
       name,
-      email,
       password
     }).pipe(
-      switchMap((response) => {
+      switchMap(() => {
         // After successful registration, automatically login
         return this.login(email, password);
       }),
       catchError(error => {
         console.error('Registration error:', error);
-        // Extract the error message from the response
-        const errorMessage = error.error?.error || error.error?.details || error.message || 'Registration failed';
+        // ABP returns RemoteServiceErrorResponse: { error: { message, details } }
+        const err = error.error?.error;
+        const errorMessage = err?.message || err?.details || error.message || 'Registration failed';
         console.error('Error details:', errorMessage);
         return throwError(() => new Error(errorMessage));
       })
@@ -109,8 +115,8 @@ export class AuthService {
     return !!this.getToken();
   }
 
-  getUserByEmail(email: string): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/api/user/${email}`).pipe(
+  fetchCurrentUser(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/api/user/me`).pipe(
       tap(user => {
         localStorage.setItem(this.userKey, JSON.stringify(user));
         this.currentUserSubject.next(user);

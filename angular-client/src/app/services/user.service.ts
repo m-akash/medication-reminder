@@ -23,31 +23,42 @@ export class UserService {
     return this.http.get<{ status: number; users: User[] }>(`${this.apiUrl}/api/users`);
   }
 
-  getUserByEmail(email: string): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/api/user/${email}`);
+  getCurrentUser(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/api/user/me`);
+  }
+
+  getUserById(id: string): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/api/user/${id}`);
   }
 
   createUser(user: CreateUserDto): Observable<User> {
-    return this.http.post<User>(`${this.apiUrl}/api/account/register`, user);
+    // Map to ABP's built-in RegisterDto (AppName, UserName, EmailAddress, Password)
+    return this.http.post<User>(`${this.apiUrl}/api/account/register`, {
+      appName: 'MedicineReminder',
+      userName: user.email,
+      emailAddress: user.email,
+      name: user.name,
+      password: user.password
+    });
   }
 
-  updateUser(email: string, user: UpdateUserDto): Observable<User> {
-    return this.http.put<User>(`${this.apiUrl}/api/user/${email}`, user);
+  updateCurrentUser(user: UpdateUserDto): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/api/user/me`, user);
   }
 
-  deleteUserAccount(email: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/api/user/${email}/account`);
+  deleteCurrentUserAccount(): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/api/user/me/account`);
   }
 
   saveFcmToken(data: SaveFcmTokenDto): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/api/user/save-fcm-token`, data);
+    return this.http.post<void>(`${this.apiUrl}/api/user/me/fcm-token`, data);
   }
 
-  getUserSettings(email: string): Observable<UserSettings> {
-    return this.http.get<UserSettings>(`${this.apiUrl}/api/user/${email}/settings`);
+  getCurrentUserSettings(): Observable<UserSettings> {
+    return this.http.get<UserSettings>(`${this.apiUrl}/api/user/me/settings`);
   }
 
-  saveUserSettings(email: string, settings: UpdateUserSettingsDto): Observable<UserSettings> {
-    return this.http.put<UserSettings>(`${this.apiUrl}/api/user/${email}/settings`, settings);
+  saveCurrentUserSettings(settings: UpdateUserSettingsDto): Observable<UserSettings> {
+    return this.http.put<UserSettings>(`${this.apiUrl}/api/user/me/settings`, settings);
   }
 }

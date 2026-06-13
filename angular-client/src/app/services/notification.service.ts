@@ -12,16 +12,16 @@ export class NotificationService {
 
   constructor(private http: HttpClient) {}
 
-  getNotifications(userEmail: string): Observable<Notification[]> {
-    return this.http.get<Notification[]>(`${this.apiUrl}/api/notifications/${userEmail}`);
+  getNotifications(): Observable<Notification[]> {
+    return this.http.get<Notification[]>(`${this.apiUrl}/api/notifications`);
   }
 
   markNotificationAsRead(notificationId: string): Observable<Notification> {
     return this.http.patch<Notification>(`${this.apiUrl}/api/notifications/${notificationId}/read`, {});
   }
 
-  markAllNotificationsAsRead(userEmail: string): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/api/notifications/${userEmail}/read-all`, {});
+  markAllNotificationsAsRead(): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/api/notifications/read-all`, {});
   }
 
   deleteNotification(notificationId: string): Observable<void> {

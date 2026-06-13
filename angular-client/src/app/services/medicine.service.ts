@@ -21,8 +21,8 @@ export class MedicineService {
 
   constructor(private http: HttpClient) {}
 
-  getMedicinesByUserEmail(userEmail: string): Observable<Medicine[]> {
-    return this.http.get<Medicine[]>(`${this.apiUrl}/api/medicine/user/${userEmail}`);
+  getMedicines(): Observable<Medicine[]> {
+    return this.http.get<Medicine[]>(`${this.apiUrl}/api/medicine`);
   }
 
   getMedicineById(id: string): Observable<Medicine> {
@@ -57,9 +57,8 @@ export class MedicineService {
     return this.http.get<MedicineTakenDay[]>(`${this.apiUrl}/api/medicine/${id}/history`, { params });
   }
 
-  getRefillReminders(userEmail: string): Observable<RefillReminder[]> {
-    const params = new HttpParams().set('userEmail', userEmail);
-    return this.http.get<RefillReminder[]>(`${this.apiUrl}/api/refill-reminders`, { params });
+  getRefillReminders(): Observable<RefillReminder[]> {
+    return this.http.get<RefillReminder[]>(`${this.apiUrl}/api/refill-reminders`);
   }
 
   refillMedicine(id: string): Observable<Medicine> {
