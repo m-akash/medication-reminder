@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MedicineReminder.Application.Contracts/MedicineReminder.Application.Contracts.csproj" />
+    <Project Path="src/MedicineReminder.Application/MedicineReminder.Application.csproj" />
+    <Project Path="src/MedicineReminder.DbMigrator/MedicineReminder.DbMigrator.csproj" />
+    <Project Path="src/MedicineReminder.Domain.Shared/MedicineReminder.Domain.Shared.csproj" />
+    <Project Path="src/MedicineReminder.Domain/MedicineReminder.Domain.csproj" />
+    <Project Path="src/MedicineReminder.EntityFrameworkCore/MedicineReminder.EntityFrameworkCore.csproj" />
+    <Project Path="src/MedicineReminder.HttpApi.Client/MedicineReminder.HttpApi.Client.csproj" />
+    <Project Path="src/MedicineReminder.HttpApi.Host/MedicineReminder.HttpApi.Host.csproj" />
+    <Project Path="src/MedicineReminder.HttpApi/MedicineReminder.HttpApi.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/MedicineReminder.Application.Tests/MedicineReminder.Application.Tests.csproj" />
+    <Project Path="test/MedicineReminder.Domain.Tests/MedicineReminder.Domain.Tests.csproj" />
+    <Project Path="test/MedicineReminder.EntityFrameworkCore.Tests/MedicineReminder.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="test/MedicineReminder.HttpApi.Client.ConsoleTestApp/MedicineReminder.HttpApi.Client.ConsoleTestApp.csproj" />
+    <Project Path="test/MedicineReminder.TestBase/MedicineReminder.TestBase.csproj" />
+  </Folder>
+</Solution>
