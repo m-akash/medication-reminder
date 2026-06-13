@@ -10,6 +10,13 @@ namespace MedicineReminder.Entities;
 /// </summary>
 public class Reminder : AuditedAggregateRoot<Guid>
 {
+    public Reminder()
+    {
+    }
+
+    public Reminder(Guid id) : base(id)
+    {
+    }
     /// <summary>
     /// Reference to the Medicine
     /// </summary>

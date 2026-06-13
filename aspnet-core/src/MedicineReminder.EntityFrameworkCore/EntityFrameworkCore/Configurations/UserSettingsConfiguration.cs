@@ -19,15 +19,12 @@ public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
             .IsUnique();
 
         builder.Property(x => x.NotificationsJson)
-            .IsRequired()
-            .HasColumnType("nvarchar(max)");
+            .IsRequired();
 
         builder.Property(x => x.MedicineDefaultsJson)
-            .IsRequired()
-            .HasColumnType("nvarchar(max)");
+            .IsRequired();
 
         builder.Property(x => x.PrivacyJson)
-            .IsRequired()
-            .HasColumnType("nvarchar(max)");
+            .IsRequired();
     }
 }

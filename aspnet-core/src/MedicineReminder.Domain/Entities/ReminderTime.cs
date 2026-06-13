@@ -9,6 +9,13 @@ namespace MedicineReminder.Entities;
 /// </summary>
 public class ReminderTime : Entity<Guid>
 {
+    public ReminderTime()
+    {
+    }
+
+    public ReminderTime(Guid id) : base(id)
+    {
+    }
     /// <summary>
     /// Reference to the Reminder
     /// </summary>

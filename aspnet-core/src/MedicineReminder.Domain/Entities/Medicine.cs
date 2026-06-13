@@ -10,6 +10,13 @@ namespace MedicineReminder.Entities;
 /// </summary>
 public class Medicine : FullAuditedAggregateRoot<Guid>
 {
+    public Medicine()
+    {
+    }
+
+    public Medicine(Guid id) : base(id)
+    {
+    }
     /// <summary>
     /// Reference to the AppUser who owns this medicine
     /// </summary>

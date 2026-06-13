@@ -102,6 +102,24 @@ public class OpenIddictDataSeedContributor : IDataSeedContributor, ITransientDep
                 clientUri: swaggerRootUrl
             );
         }
+
+        // Angular / SPA Client (resource-owner password grant)
+        var appClientId = configurationSection["MedicineReminder_App:ClientId"];
+        if (!appClientId.IsNullOrWhiteSpace())
+        {
+            await CreateApplicationAsync(
+                name: appClientId!,
+                type: OpenIddictConstants.ClientTypes.Public,
+                consentType: OpenIddictConstants.ConsentTypes.Implicit,
+                displayName: "MedicineReminder Angular Application",
+                secret: null,
+                grantTypes: new List<string> {
+                    OpenIddictConstants.GrantTypes.Password,
+                    OpenIddictConstants.GrantTypes.RefreshToken
+                },
+                scopes: commonScopes
+            );
+        }
     }
 
     private async Task CreateApplicationAsync(
