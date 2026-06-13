@@ -1,0 +1,44 @@
+using System;
+
+namespace MedicineReminder.Contracts.Settings;
+
+/// <summary>
+/// User settings DTO containing all user preferences
+/// </summary>
+public class UserSettingsDto
+{
+    public NotificationSettingsDto Notifications { get; set; } = new();
+    public MedicineDefaultsDto MedicineDefaults { get; set; } = new();
+    public PrivacySettingsDto Privacy { get; set; } = new();
+}
+
+/// <summary>
+/// Notification preferences
+/// </summary>
+public class NotificationSettingsDto
+{
+    public bool Enabled { get; set; } = true;
+    public int ReminderAdvance { get; set; } = 30;
+    public bool MissedDoseAlerts { get; set; } = true;
+    public bool RefillReminders { get; set; } = true;
+    public bool DailySummary { get; set; } = false;
+}
+
+/// <summary>
+/// Default medicine settings
+/// </summary>
+public class MedicineDefaultsDto
+{
+    public int DefaultDosesPerDay { get; set; } = 1;
+    public string[] DefaultReminderTimes { get; set; } = Array.Empty<string>();
+    public int DefaultDurationDays { get; set; } = 0;
+}
+
+/// <summary>
+/// Privacy settings
+/// </summary>
+public class PrivacySettingsDto
+{
+    public bool DataSharing { get; set; } = false;
+    public bool Analytics { get; set; } = true;
+}
