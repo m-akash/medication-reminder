@@ -14,7 +14,7 @@ namespace MedicineReminder.Notifications;
 /// Application service for Notification management
 /// Handles in-app notifications for medicine reminders and alerts
 /// </summary>
-public class NotificationAppService : INotificationAppService
+public class NotificationAppService : MedicineReminderAppService, INotificationAppService
 {
     private readonly IRepository<Notification, Guid> _notificationRepository;
     private readonly IRepository<AppUser, Guid> _appUserRepository;
@@ -27,13 +27,26 @@ public class NotificationAppService : INotificationAppService
         _appUserRepository = appUserRepository;
     }
 
-    public async Task<List<Contracts.Notifications.NotificationDto>> GetNotificationsAsync(string userEmail)
+    private async Task<AppUser> GetCurrentUserEntityAsync()
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == userEmail);
+        var identityUserId = CurrentUser.Id;
+        if (identityUserId == null)
+        {
+            throw new BusinessException("User is not authenticated");
+        }
+
+        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId);
         if (user == null)
         {
-            throw new BusinessException("User not found");
+            throw new BusinessException("User profile not found");
         }
+
+        return user;
+    }
+
+    public async Task<List<Contracts.Notifications.NotificationDto>> GetNotificationsForCurrentUserAsync()
+    {
+        var user = await GetCurrentUserEntityAsync();
 
         var queryable = await _notificationRepository.GetQueryableAsync();
         var notifications = queryable
@@ -58,13 +71,9 @@ public class NotificationAppService : INotificationAppService
         return MapToNotificationDto(notification);
     }
 
-    public async Task MarkAllNotificationsAsReadAsync(string userEmail)
+    public async Task MarkAllNotificationsAsReadForCurrentUserAsync()
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == userEmail);
-        if (user == null)
-        {
-            throw new BusinessException("User not found");
-        }
+        var user = await GetCurrentUserEntityAsync();
 
         var queryable = await _notificationRepository.GetQueryableAsync();
         var notifications = queryable

@@ -16,7 +16,7 @@ namespace MedicineReminder.Medicines;
 /// Application service for Medicine management
 /// Implements CRUD operations, dose tracking, and reminder management
 /// </summary>
-public class MedicineAppService : IMedicineAppService
+public class MedicineAppService : MedicineReminderAppService, IMedicineAppService
 {
     private readonly IRepository<Medicine, Guid> _medicineRepository;
     private readonly IRepository<MedicineTakenDay, Guid> _medicineTakenDayRepository;
@@ -38,13 +38,26 @@ public class MedicineAppService : IMedicineAppService
         _userSettingsRepository = userSettingsRepository;
     }
 
-    public async Task<List<Contracts.Medicines.MedicineDto>> GetMedicineByEmailAsync(string userEmail)
+    private async Task<AppUser> GetCurrentUserEntityAsync()
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == userEmail);
+        var identityUserId = CurrentUser.Id;
+        if (identityUserId == null)
+        {
+            throw new BusinessException("User is not authenticated");
+        }
+
+        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId);
         if (user == null)
         {
-            throw new BusinessException("User not found");
+            throw new BusinessException("User profile not found");
         }
+
+        return user;
+    }
+
+    public async Task<List<Contracts.Medicines.MedicineDto>> GetMedicinesForCurrentUserAsync()
+    {
+        var user = await GetCurrentUserEntityAsync();
 
         var queryable = await _medicineRepository.GetQueryableAsync();
         var medicines = queryable
@@ -77,7 +90,9 @@ public class MedicineAppService : IMedicineAppService
             ? CreateLocalDateTime(input.StartDate, scheduledTimes[0])
             : dateOnly;
 
-        var medicine = new Medicine
+        var medicineId = GuidGenerator.Create();
+
+        var medicine = new Medicine(medicineId)
         {
             AppUserId = user.Id,
             Name = input.Name,
@@ -96,16 +111,16 @@ public class MedicineAppService : IMedicineAppService
         };
 
         // Create reminder
-        var reminder = new Reminder
+        var reminder = new Reminder(GuidGenerator.Create())
         {
-            MedicineId = medicine.Id,
+            MedicineId = medicineId,
             RepeatEveryDay = true,
             IsActive = true
         };
 
         foreach (var time in scheduledTimes)
         {
-            reminder.Times.Add(new ReminderTime
+            reminder.Times.Add(new ReminderTime(GuidGenerator.Create())
             {
                 Time = CreateLocalDateTime(input.StartDate, time)
             });
@@ -132,6 +147,7 @@ public class MedicineAppService : IMedicineAppService
         medicine.DurationDays = input.DurationDays;
         medicine.OriginalDurationDays = input.OriginalDurationDays;
         medicine.TotalPills = input.TotalPills;
+        medicine.OriginalTotalPills = input.OriginalTotalPills;
         medicine.PillsPerDose = input.PillsPerDose;
 
         await _medicineRepository.UpdateAsync(medicine);
@@ -198,13 +214,9 @@ public class MedicineAppService : IMedicineAppService
         return result;
     }
 
-    public async Task<List<Contracts.Medicines.RefillReminderDto>> GetRefillRemindersAsync(string userEmail)
+    public async Task<List<Contracts.Medicines.RefillReminderDto>> GetRefillRemindersForCurrentUserAsync()
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == userEmail);
-        if (user == null)
-        {
-            throw new BusinessException("User not found");
-        }
+        var user = await GetCurrentUserEntityAsync();
 
         var medicineQueryable = await _medicineRepository.GetQueryableAsync();
         var medicines = medicineQueryable

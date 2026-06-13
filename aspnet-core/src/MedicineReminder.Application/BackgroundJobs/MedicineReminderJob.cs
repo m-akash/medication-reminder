@@ -25,6 +25,7 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
     private readonly IRepository<UserSettings, Guid> _userSettingsRepository;
     private readonly IRepository<Notification, Guid> _notificationRepository;
     private readonly IFcmService _fcmService;
+    private readonly IUnitOfWorkManager _unitOfWorkManager;
 
     private const int CronWindowMinutes = 5;
     private const int MissedDoseThresholdMinutes = 60;
@@ -36,7 +37,8 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         IRepository<AppUser, Guid> appUserRepository,
         IRepository<UserSettings, Guid> userSettingsRepository,
         IRepository<Notification, Guid> notificationRepository,
-        IFcmService fcmService)
+        IFcmService fcmService,
+        IUnitOfWorkManager unitOfWorkManager)
     {
         _medicineRepository = medicineRepository;
         _medicineTakenDayRepository = medicineTakenDayRepository;
@@ -45,9 +47,21 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         _userSettingsRepository = userSettingsRepository;
         _notificationRepository = notificationRepository;
         _fcmService = fcmService;
+        _unitOfWorkManager = unitOfWorkManager;
     }
 
     public override async Task ExecuteAsync(MedicineReminderJobArgs args)
+    {
+        // Background jobs are invoked by Hangfire outside an HTTP request, so the
+        // ambient UnitOfWork / DbContext from the DI scope can be disposed before
+        // async continuations resume (ObjectDisposedException on DbContext). Begin
+        // an explicit UoW here so a single DbContext lives for the whole job.
+        using var uow = _unitOfWorkManager.Begin(requiresNew: true, isTransactional: false);
+        await RunJobAsync();
+        await uow.CompleteAsync();
+    }
+
+    private async Task RunJobAsync()
     {
         var now = DateTime.Now;
         var windowStart = now.AddMinutes(-CronWindowMinutes);

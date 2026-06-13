@@ -32,5 +32,8 @@ public class UpdateMedicineDto
     public int TotalPills { get; set; }
 
     [Required]
+    public int OriginalTotalPills { get; set; }
+
+    [Required]
     public int PillsPerDose { get; set; }
 }

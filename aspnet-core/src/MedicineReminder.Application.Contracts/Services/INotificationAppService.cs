@@ -10,14 +10,14 @@ namespace MedicineReminder.Contracts.Services;
 /// </summary>
 public interface INotificationAppService : IApplicationService
 {
-    // GET /api/notifications/:userEmail
-    Task<List<Notifications.NotificationDto>> GetNotificationsAsync(string userEmail);
+    // GET /api/notifications
+    Task<List<Notifications.NotificationDto>> GetNotificationsForCurrentUserAsync();
 
     // PATCH /api/notifications/:notificationId/read
     Task<Notifications.NotificationDto> MarkNotificationAsReadAsync(Guid notificationId);
 
-    // PATCH /api/notifications/:userEmail/read-all
-    Task MarkAllNotificationsAsReadAsync(string userEmail);
+    // PATCH /api/notifications/read-all
+    Task MarkAllNotificationsAsReadForCurrentUserAsync();
 
     // DELETE /api/notifications/:notificationId
     Task DeleteNotificationAsync(Guid notificationId);

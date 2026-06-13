@@ -13,6 +13,7 @@ using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 using Volo.Abp.Uow;
+using Volo.Abp.Users;
 
 namespace MedicineReminder.Users;
 
@@ -20,23 +21,23 @@ namespace MedicineReminder.Users;
 /// Application service for User management
 /// Works with ABP Identity for authentication and manages custom AppUser profile
 /// </summary>
-public class UserAppService : IUserAppService
+public class UserAppService : MedicineReminderAppService, IUserAppService
 {
     private readonly IRepository<AppUser, Guid> _appUserRepository;
     private readonly IRepository<UserSettings, Guid> _userSettingsRepository;
     private readonly IdentityUserManager _userManager;
-    private readonly IIdentityUserRepository _identityUserRepository;
+    private readonly ICurrentUser _currentUser;
 
     public UserAppService(
         IRepository<AppUser, Guid> appUserRepository,
         IRepository<UserSettings, Guid> userSettingsRepository,
         IdentityUserManager userManager,
-        IIdentityUserRepository identityUserRepository)
+        ICurrentUser currentUser)
     {
         _appUserRepository = appUserRepository;
         _userSettingsRepository = userSettingsRepository;
         _userManager = userManager;
-        _identityUserRepository = identityUserRepository;
+        _currentUser = currentUser;
     }
 
     public async Task<object> GetUsersAsync()
@@ -45,15 +46,36 @@ public class UserAppService : IUserAppService
         return new { status = 200, users };
     }
 
-    public async Task<UserDto> GetUserByEmailAsync(string email)
+    public async Task<UserDto> GetCurrentUserAsync()
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == email);
-        if (user == null)
+        return MapToUserDto(await GetCurrentUserEntityAsync());
+    }
+
+    public async Task<UserDto> GetUserByIdAsync(Guid id)
+    {
+        var user = await _appUserRepository.GetAsync(id);
+        return MapToUserDto(user);
+    }
+
+    /// <summary>
+    /// Resolves the AppUser row for the currently authenticated user.
+    /// The access token carries the ABP IdentityUser id, which AppUser links via IdentityUserId.
+    /// </summary>
+    private async Task<AppUser> GetCurrentUserEntityAsync()
+    {
+        var identityUserId = _currentUser.Id;
+        if (identityUserId == null)
         {
-            throw new BusinessException("User not found");
+            throw new BusinessException("User is not authenticated");
         }
 
-        return MapToUserDto(user);
+        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId);
+        if (user == null)
+        {
+            throw new BusinessException("User profile not found");
+        }
+
+        return user;
     }
 
     public async Task<UserDto> CreateUserAsync(CreateUserDto input)
@@ -89,13 +111,9 @@ public class UserAppService : IUserAppService
     }
 
     [Authorize]
-    public async Task<UserDto> UpdateUserAsync(string email, UpdateUserDto input)
+    public async Task<UserDto> UpdateCurrentUserAsync(UpdateUserDto input)
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == email);
-        if (user == null)
-        {
-            throw new BusinessException("User not found");
-        }
+        var user = await GetCurrentUserEntityAsync();
 
         user.Name = input.Name;
         user.Email = input.Email;
@@ -105,45 +123,34 @@ public class UserAppService : IUserAppService
     }
 
     [Authorize]
-    public async Task DeleteUserAccountAsync(string email)
+    public async Task DeleteCurrentUserAccountAsync()
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == email);
-        if (user == null)
-        {
-            throw new BusinessException("User not found");
-        }
+        var user = await GetCurrentUserEntityAsync();
 
         // Delete AppUser profile (cascade will handle related entities)
         await _appUserRepository.DeleteAsync(user.Id);
 
         // Delete ABP Identity user
-        var identityUser = await _identityUserRepository.FindByNormalizedEmailAsync(email.ToUpperInvariant());
+        var identityUser = await _userManager.FindByIdAsync(user.IdentityUserId.ToString());
         if (identityUser != null)
         {
             await _userManager.DeleteAsync(identityUser);
         }
     }
 
+    [Authorize]
     public async Task SaveFcmTokenAsync(SaveFcmTokenDto input)
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == input.Email);
-        if (user == null)
-        {
-            throw new BusinessException("User not found");
-        }
+        var user = await GetCurrentUserEntityAsync();
 
         user.FcmToken = input.TokenForNotification;
         await _appUserRepository.UpdateAsync(user);
     }
 
     [Authorize]
-    public async Task<UserSettingsDto> GetUserSettingsAsync(string email)
+    public async Task<UserSettingsDto> GetCurrentUserSettingsAsync()
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == email);
-        if (user == null)
-        {
-            throw new BusinessException("User not found");
-        }
+        var user = await GetCurrentUserEntityAsync();
 
         var settings = await _userSettingsRepository.FirstOrDefaultAsync(x => x.AppUserId == user.Id);
 
@@ -183,13 +190,9 @@ public class UserAppService : IUserAppService
     }
 
     [Authorize]
-    public async Task<UserSettingsDto> SaveUserSettingsAsync(string email, UpdateUserSettingsDto input)
+    public async Task<UserSettingsDto> SaveCurrentUserSettingsAsync(UpdateUserSettingsDto input)
     {
-        var user = await _appUserRepository.FirstOrDefaultAsync(x => x.Email == email);
-        if (user == null)
-        {
-            throw new BusinessException("User not found");
-        }
+        var user = await GetCurrentUserEntityAsync();
 
         var settings = await _userSettingsRepository.FirstOrDefaultAsync(x => x.AppUserId == user.Id);
 

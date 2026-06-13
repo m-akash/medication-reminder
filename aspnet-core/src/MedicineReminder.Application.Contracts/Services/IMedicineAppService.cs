@@ -10,8 +10,8 @@ namespace MedicineReminder.Contracts.Services;
 /// </summary>
 public interface IMedicineAppService : IApplicationService
 {
-    // GET /api/medicine/user/:userEmail
-    Task<List<Medicines.MedicineDto>> GetMedicineByEmailAsync(string userEmail);
+    // GET /api/medicine
+    Task<List<Medicines.MedicineDto>> GetMedicinesForCurrentUserAsync();
 
     // GET /api/medicine/:id
     Task<Medicines.MedicineDto> GetMedicineByIdAsync(Guid id);
@@ -35,7 +35,7 @@ public interface IMedicineAppService : IApplicationService
     Task<List<Medicines.MedicineTakenDayDto>> GetMedicineTakenHistoryAsync(Guid id, string from, string to);
 
     // GET /api/refill-reminders
-    Task<List<Medicines.RefillReminderDto>> GetRefillRemindersAsync(string userEmail);
+    Task<List<Medicines.RefillReminderDto>> GetRefillRemindersForCurrentUserAsync();
 
     // PUT /api/medicine/:id/refill
     Task<Medicines.MedicineDto> RefillMedicineAsync(Guid id);
