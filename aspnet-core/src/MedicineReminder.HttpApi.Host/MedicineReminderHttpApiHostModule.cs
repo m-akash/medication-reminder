@@ -205,17 +205,18 @@ public class MedicineReminderHttpApiHostModule : AbpModule
 
     private void ConfigureFcm(ServiceConfigurationContext context, IConfiguration configuration)
     {
-        // Configure FCM settings
+        // FCM settings. Credentials are loaded from the service account JSON file
+        // (firebase-service-account.json, gitignored) — never from appsettings.
         var fcmConfig = new FcmConfiguration
         {
             ProjectId = configuration["Firebase:ProjectId"] ?? "",
-            ClientEmail = configuration["Firebase:ClientEmail"] ?? "",
-            PrivateKey = configuration["Firebase:PrivateKey"] ?? ""
+            ServiceAccountFilePath = configuration["Firebase:ServiceAccountFilePath"] ?? "firebase-service-account.json"
         };
 
         context.Services.AddSingleton(fcmConfig);
 
-        // Configure FCM HttpClient with authorization header
+        // FCM HttpClient. The bearer token is attached per-request in FcmService
+        // because it is short-lived and must be refreshed.
         context.Services.AddHttpClient("FcmClient", client =>
         {
             client.BaseAddress = new Uri("https://fcm.googleapis.com");
