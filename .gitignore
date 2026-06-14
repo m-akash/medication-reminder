@@ -16,6 +16,9 @@
 # NuGet API keys / user secrets
 *.nuget.config.local
 secrets.*
+# Firebase service account credentials (NEVER commit — contains private key)
+**/firebase-service-account*.json
+**/*-firebase-adminsdk-*.json
 
 # === OS files ===
 .DS_Store
