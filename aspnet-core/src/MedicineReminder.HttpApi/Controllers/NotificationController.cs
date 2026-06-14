@@ -63,4 +63,14 @@ public class NotificationController : ControllerBase
     {
         await _notificationAppService.MarkAllNotificationsAsReadForCurrentUserAsync();
     }
+
+    /// <summary>
+    /// POST /api/notifications/test
+    /// Send a test push notification to the current user's device
+    /// </summary>
+    [HttpPost("test")]
+    public async Task SendTestNotificationAsync()
+    {
+        await _notificationAppService.SendTestNotificationAsync();
+    }
 }

@@ -21,4 +21,8 @@ public interface INotificationAppService : IApplicationService
 
     // DELETE /api/notifications/:notificationId
     Task DeleteNotificationAsync(Guid notificationId);
+
+    // POST /api/notifications/test
+    // Send a test push + in-app notification to the current user's device
+    Task SendTestNotificationAsync();
 }

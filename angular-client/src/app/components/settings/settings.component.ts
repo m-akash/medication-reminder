@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { UserService } from '../../services/user.service';
+import { NotificationService } from '../../services/notification.service';
 import { UserSettings, UpdateUserSettingsDto } from '../../models/user.model';
 import { AuthService } from '../../services/auth.service';
 
@@ -252,7 +253,19 @@ import { AuthService } from '../../services/auth.service';
                   <span class="text-gray-500 text-sm font-semibold">Email</span>
                   <span class="font-bold text-gray-800 text-xs">{{ getCurrentUserEmail() }}</span>
                 </div>
-                <button (click)="logout()" class="btn btn-sm btn-error btn-outline hover:bg-red-500 hover:text-white rounded-xl w-full mt-4 font-bold transition-all py-2 h-auto">
+                <button
+                  (click)="sendTestNotification()"
+                  [disabled]="isSendingTest"
+                  class="btn btn-sm btn-outline btn-primary hover:bg-indigo-500 hover:text-white rounded-xl w-full font-bold transition-all py-2 h-auto"
+                >
+                  @if (isSendingTest) {
+                    <span class="loading loading-spinner loading-sm"></span>
+                    Sending...
+                  } @else {
+                    Send Test Notification
+                  }
+                </button>
+                <button (click)="logout()" class="btn btn-sm btn-error btn-outline hover:bg-red-500 hover:text-white rounded-xl w-full font-bold transition-all py-2 h-auto">
                   Logout
                 </button>
               </div>
@@ -274,6 +287,7 @@ import { AuthService } from '../../services/auth.service';
 export class SettingsComponent implements OnInit {
   settingsForm: FormGroup;
   isLoading = false;
+  isSendingTest = false;
   successMessage = '';
   errorMessage = '';
 
@@ -281,6 +295,7 @@ export class SettingsComponent implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private userService: UserService,
+    private notificationService: NotificationService,
     private authService: AuthService
   ) {
     this.settingsForm = this.fb.group({
@@ -390,5 +405,26 @@ export class SettingsComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     window.location.href = '/home';
+  }
+
+  sendTestNotification(): void {
+    this.isSendingTest = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+
+    this.notificationService.sendTestNotification().subscribe({
+      next: () => {
+        this.isSendingTest = false;
+        this.successMessage = 'Test notification sent! Check your device.';
+        setTimeout(() => { this.successMessage = ''; }, 4000);
+      },
+      error: (err) => {
+        this.isSendingTest = false;
+        // Backend returns this when no FCM token is registered yet.
+        const backendMessage = err?.error?.error?.message || err?.error?.message;
+        this.errorMessage = backendMessage || 'Failed to send test notification. Ensure notifications are allowed.';
+        setTimeout(() => { this.errorMessage = ''; }, 5000);
+      }
+    });
   }
 }

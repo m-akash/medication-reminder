@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MedicineReminder.Contracts.Services;
 using MedicineReminder.Entities;
+using MedicineReminder.Firebase;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
@@ -18,13 +19,16 @@ public class NotificationAppService : MedicineReminderAppService, INotificationA
 {
     private readonly IRepository<Notification, Guid> _notificationRepository;
     private readonly IRepository<AppUser, Guid> _appUserRepository;
+    private readonly IFcmService _fcmService;
 
     public NotificationAppService(
         IRepository<Notification, Guid> notificationRepository,
-        IRepository<AppUser, Guid> appUserRepository)
+        IRepository<AppUser, Guid> appUserRepository,
+        IFcmService fcmService)
     {
         _notificationRepository = notificationRepository;
         _appUserRepository = appUserRepository;
+        _fcmService = fcmService;
     }
 
     private async Task<AppUser> GetCurrentUserEntityAsync()
@@ -90,6 +94,39 @@ public class NotificationAppService : MedicineReminderAppService, INotificationA
     public async Task DeleteNotificationAsync(Guid notificationId)
     {
         await _notificationRepository.DeleteAsync(notificationId);
+    }
+
+    /// <summary>
+    /// Sends a test push notification + creates an in-app notification for the
+    /// current user. Useful for verifying the FCM pipeline end-to-end without
+    /// waiting for the scheduler. Requires the user to have registered a device
+    /// token.
+    /// </summary>
+    public async Task SendTestNotificationAsync()
+    {
+        var user = await GetCurrentUserEntityAsync();
+
+        if (string.IsNullOrWhiteSpace(user.FcmToken))
+        {
+            throw new BusinessException(
+                code: "MedicineReminder:NoDeviceToken",
+                message: "No device token registered. Allow notifications in the app first.");
+        }
+
+        const string title = "Test notification";
+        const string body = "If you can read this, push notifications are working! 🎉";
+
+        // Fire the push first; FcmService logs failures but does not throw.
+        await _fcmService.SendNotificationAsync(user.FcmToken, title, body);
+
+        // Also persist an in-app notification so it shows up in the bell list.
+        await _notificationRepository.InsertAsync(new Notification
+        {
+            AppUserId = user.Id,
+            Title = title,
+            Message = body,
+            Type = "SYSTEM"
+        });
     }
 
     private Contracts.Notifications.NotificationDto MapToNotificationDto(Notification notification)
