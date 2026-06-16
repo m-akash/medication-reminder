@@ -6,7 +6,6 @@ import {
   User,
   CreateUserDto,
   UpdateUserDto,
-  SaveFcmTokenDto,
   UserSettings,
   UpdateUserSettingsDto
 } from '../models/user.model';
@@ -48,10 +47,6 @@ export class UserService {
 
   deleteCurrentUserAccount(): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/api/user/me/account`);
-  }
-
-  saveFcmToken(data: SaveFcmTokenDto): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/api/user/me/fcm-token`, data);
   }
 
   getCurrentUserSettings(): Observable<UserSettings> {

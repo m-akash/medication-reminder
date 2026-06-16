@@ -4,7 +4,6 @@ export interface User {
   name: string;
   email: string;
   lastLogin: string;
-  fcmToken?: string;
 }
 
 export interface CreateUserDto {
@@ -16,11 +15,6 @@ export interface CreateUserDto {
 export interface UpdateUserDto {
   name: string;
   email: string;
-}
-
-export interface SaveFcmTokenDto {
-  email: string;
-  tokenForNotification: string;
 }
 
 export interface NotificationSettings {
