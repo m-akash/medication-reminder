@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using MedicineReminder.Contracts.Services;
 using MedicineReminder.Entities;
-using MedicineReminder.Firebase;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Emailing;
 
 namespace MedicineReminder.Notifications;
 
@@ -19,16 +19,16 @@ public class NotificationAppService : MedicineReminderAppService, INotificationA
 {
     private readonly IRepository<Notification, Guid> _notificationRepository;
     private readonly IRepository<AppUser, Guid> _appUserRepository;
-    private readonly IFcmService _fcmService;
+    private readonly IEmailSender _emailSender;
 
     public NotificationAppService(
         IRepository<Notification, Guid> notificationRepository,
         IRepository<AppUser, Guid> appUserRepository,
-        IFcmService fcmService)
+        IEmailSender emailSender)
     {
         _notificationRepository = notificationRepository;
         _appUserRepository = appUserRepository;
-        _fcmService = fcmService;
+        _emailSender = emailSender;
     }
 
     private async Task<AppUser> GetCurrentUserEntityAsync()
@@ -97,27 +97,26 @@ public class NotificationAppService : MedicineReminderAppService, INotificationA
     }
 
     /// <summary>
-    /// Sends a test push notification + creates an in-app notification for the
-    /// current user. Useful for verifying the FCM pipeline end-to-end without
-    /// waiting for the scheduler. Requires the user to have registered a device
-    /// token.
+    /// Sends a test email + creates an in-app notification for the current user.
+    /// Useful for verifying the SMTP pipeline end-to-end without waiting for the
+    /// scheduler.
     /// </summary>
     public async Task SendTestNotificationAsync()
     {
         var user = await GetCurrentUserEntityAsync();
 
-        if (string.IsNullOrWhiteSpace(user.FcmToken))
+        if (string.IsNullOrWhiteSpace(user.Email))
         {
             throw new BusinessException(
-                code: "MedicineReminder:NoDeviceToken",
-                message: "No device token registered. Allow notifications in the app first.");
+                code: "MedicineReminder:NoEmail",
+                message: "Your account has no email address to send the test to.");
         }
 
         const string title = "Test notification";
-        const string body = "If you can read this, push notifications are working! 🎉";
+        const string body = "If you can read this, email notifications are working! 🎉";
 
-        // Fire the push first; FcmService logs failures but does not throw.
-        await _fcmService.SendNotificationAsync(user.FcmToken, title, body);
+        // Fire the email first.
+        await _emailSender.SendAsync(user.Email, title, body);
 
         // Also persist an in-app notification so it shows up in the bell list.
         await _notificationRepository.InsertAsync(new Notification

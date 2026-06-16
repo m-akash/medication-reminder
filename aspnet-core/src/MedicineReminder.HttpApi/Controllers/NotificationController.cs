@@ -66,7 +66,7 @@ public class NotificationController : ControllerBase
 
     /// <summary>
     /// POST /api/notifications/test
-    /// Send a test push notification to the current user's device
+    /// Send a test email notification to the current user's email address
     /// </summary>
     [HttpPost("test")]
     public async Task SendTestNotificationAsync()

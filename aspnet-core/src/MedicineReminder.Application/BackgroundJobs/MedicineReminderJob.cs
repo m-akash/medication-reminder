@@ -5,9 +5,10 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using MedicineReminder.Contracts.Settings;
 using MedicineReminder.Entities;
-using MedicineReminder.Firebase;
+using Microsoft.Extensions.Logging;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Emailing;
 using Volo.Abp.Uow;
 
 namespace MedicineReminder.BackgroundJobs;
@@ -24,10 +25,10 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
     private readonly IRepository<AppUser, Guid> _appUserRepository;
     private readonly IRepository<UserSettings, Guid> _userSettingsRepository;
     private readonly IRepository<Notification, Guid> _notificationRepository;
-    private readonly IFcmService _fcmService;
+    private readonly IEmailSender _emailSender;
     private readonly IUnitOfWorkManager _unitOfWorkManager;
+    private readonly ILogger<MedicineReminderJob> _logger;
 
-    private const int CronWindowMinutes = 5;
     private const int MissedDoseThresholdMinutes = 60;
 
     public MedicineReminderJob(
@@ -37,8 +38,9 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         IRepository<AppUser, Guid> appUserRepository,
         IRepository<UserSettings, Guid> userSettingsRepository,
         IRepository<Notification, Guid> notificationRepository,
-        IFcmService fcmService,
-        IUnitOfWorkManager unitOfWorkManager)
+        IEmailSender emailSender,
+        IUnitOfWorkManager unitOfWorkManager,
+        ILogger<MedicineReminderJob> logger)
     {
         _medicineRepository = medicineRepository;
         _medicineTakenDayRepository = medicineTakenDayRepository;
@@ -46,8 +48,9 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         _appUserRepository = appUserRepository;
         _userSettingsRepository = userSettingsRepository;
         _notificationRepository = notificationRepository;
-        _fcmService = fcmService;
+        _emailSender = emailSender;
         _unitOfWorkManager = unitOfWorkManager;
+        _logger = logger;
     }
 
     public override async Task ExecuteAsync(MedicineReminderJobArgs args)
@@ -64,16 +67,17 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
     private async Task RunJobAsync()
     {
         var now = DateTime.Now;
-        var windowStart = now.AddMinutes(-CronWindowMinutes);
         var todayStart = now.Date;
 
-        Console.WriteLine($"[Scheduler] Running at {now:yyyy-MM-dd HH:mm:ss}");
+        _logger.LogInformation("[Scheduler] Running at {Time:yyyy-MM-dd HH:mm:ss}", now);
 
         // Get all medicines with active reminders
         var medicineQueryable = await _medicineRepository.GetQueryableAsync();
         var medicines = medicineQueryable
             .Where(m => m.Reminders != null && m.Reminders.Any(r => r.IsActive))
             .ToList();
+
+        _logger.LogInformation("[Scheduler] Found {Count} medicine(s) with active reminders", medicines.Count);
 
         var notificationsMap = new Dictionary<string, NotificationGroup>();
         var missedNotificationsMap = new Dictionary<string, NotificationGroup>();
@@ -83,7 +87,7 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
             // Get user with settings
             var userQueryable = await _appUserRepository.GetQueryableAsync();
             var user = userQueryable.FirstOrDefault(u => u.Id == medicine.AppUserId);
-            if (user == null || string.IsNullOrEmpty(user.FcmToken)) continue;
+            if (user == null || string.IsNullOrEmpty(user.Email)) continue;
 
             // Get user settings
             var settingsQueryable = await _userSettingsRepository.GetQueryableAsync();
@@ -123,11 +127,20 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
             for (int i = 0; i < todayTimes.Count; i++)
             {
                 var doseTime = todayTimes[i];
-                var isDue = doseTime >= windowStart && doseTime <= now;
-                var isMissed = doseTime.AddMinutes(MissedDoseThresholdMinutes) >= windowStart &&
-                               doseTime.AddMinutes(MissedDoseThresholdMinutes) <= now;
+
+                // Due/missed are evaluated relative to the dose time, NOT the
+                // (jittery) moment Hangfire happens to fire. A dose is due once
+                // its time has passed today (up to the missed threshold), and
+                // missed once it exceeds that threshold. Sent-state in
+                // RemindersSent prevents duplicate sends across runs.
+                var isDue = doseTime <= now && doseTime > now.AddMinutes(-MissedDoseThresholdMinutes);
+                var isMissed = doseTime <= now.AddMinutes(-MissedDoseThresholdMinutes);
                 var alreadyTaken = i < takenArr.Length && takenArr[i] == "1";
                 var reminderAlreadySent = i < remindersSentArr.Length && remindersSentArr[i] != "0";
+
+                _logger.LogDebug(
+                    "[Scheduler] {Medicine} dose #{Index} at {DoseTime:HH:mm}: isDue={Due} isMissed={Missed} taken={Taken} sent={Sent}",
+                    medicine.Name, i, doseTime, isDue, isMissed, alreadyTaken, reminderAlreadySent);
 
                 // Reminder Notification
                 if (isDue && !reminderAlreadySent && !alreadyTaken)
@@ -204,12 +217,10 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         {
             var body = string.Join(", ", group.Medicines.Select(m => $"{m.Name}{(!string.IsNullOrEmpty(m.Dosage) ? $" ({m.Dosage})" : "")}"));
 
-            // Send FCM notification
-            await _fcmService.SendNotificationAsync(
-                group.User.FcmToken,
-                $"Time for your {group.DoseTimeName} dose",
-                $"It's time to take: {body}"
-            );
+            // Send email reminder
+            var subject = $"Time for your {group.DoseTimeName} dose";
+            var message = $"It's time to take: {body}";
+            await SafeSendEmailAsync(group.User.Email, subject, message);
 
             // Create in-app notification
             await CreateMedicineReminderNotification(
@@ -224,12 +235,10 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         {
             var body = string.Join(", ", group.Medicines.Select(m => $"{m.Name}{(!string.IsNullOrEmpty(m.Dosage) ? $" ({m.Dosage})" : "")}"));
 
-            // Send FCM notification
-            await _fcmService.SendNotificationAsync(
-                group.User.FcmToken,
-                "Missed Dose",
-                $"You missed your {group.DoseTimeName.ToLower()} dose of: {body}"
-            );
+            // Send email alert
+            var subject = "Missed Dose";
+            var message = $"You missed your {group.DoseTimeName.ToLower()} dose of: {body}";
+            await SafeSendEmailAsync(group.User.Email, subject, message);
 
             // Create in-app notification
             await CreateMissedDoseNotification(
@@ -354,6 +363,24 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         };
 
         await _notificationRepository.InsertAsync(notification);
+    }
+
+    /// <summary>
+    /// Sends an email but never throws — a failed SMTP send must not abort the
+    /// scheduler run or skip the in-app notification that follows it. Mirrors the
+    /// previous FCM behavior of logging failures and continuing.
+    /// </summary>
+    private async Task SafeSendEmailAsync(string to, string subject, string body)
+    {
+        try
+        {
+            await _emailSender.SendAsync(to, subject, body);
+            _logger.LogInformation("[Scheduler] Email sent to {To}: {Subject}", to, subject);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Scheduler] Email send to {To} failed", to);
+        }
     }
 
     private class NotificationGroup
