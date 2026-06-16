@@ -14,7 +14,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MedicineReminder.BackgroundJobs;
 using MedicineReminder.EntityFrameworkCore;
-using MedicineReminder.Firebase;
 using MedicineReminder.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite.Bundling;
@@ -77,7 +76,6 @@ public class MedicineReminderHttpApiHostModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureSwaggerServices(context, configuration);
         ConfigureHangfire(context, configuration);
-        ConfigureFcm(context, configuration);
     }
 
     private void ConfigureAuthentication(ServiceConfigurationContext context)
@@ -200,27 +198,6 @@ public class MedicineReminderHttpApiHostModule : AbpModule
         context.Services.AddHangfireServer(options =>
         {
             options.ServerName = "MedicineReminderServer";
-        });
-    }
-
-    private void ConfigureFcm(ServiceConfigurationContext context, IConfiguration configuration)
-    {
-        // FCM settings. Credentials are loaded from the service account JSON file
-        // (firebase-service-account.json, gitignored) — never from appsettings.
-        var fcmConfig = new FcmConfiguration
-        {
-            ProjectId = configuration["Firebase:ProjectId"] ?? "",
-            ServiceAccountFilePath = configuration["Firebase:ServiceAccountFilePath"] ?? "firebase-service-account.json"
-        };
-
-        context.Services.AddSingleton(fcmConfig);
-
-        // FCM HttpClient. The bearer token is attached per-request in FcmService
-        // because it is short-lived and must be refreshed.
-        context.Services.AddHttpClient("FcmClient", client =>
-        {
-            client.BaseAddress = new Uri("https://fcm.googleapis.com");
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
         });
     }
 

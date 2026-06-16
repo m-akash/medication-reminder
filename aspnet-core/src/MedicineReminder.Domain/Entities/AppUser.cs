@@ -36,12 +36,6 @@ public class AppUser : AuditedAggregateRoot<Guid>
     public DateTime LastLogin { get; set; }
 
     /// <summary>
-    /// Firebase Cloud Messaging token for push notifications
-    /// </summary>
-    [MaxLength(512)]
-    public string? FcmToken { get; set; }
-
-    /// <summary>
     /// Navigation to user's medicines
     /// </summary>
     public ICollection<Medicine> Medicines { get; set; } = new List<Medicine>();

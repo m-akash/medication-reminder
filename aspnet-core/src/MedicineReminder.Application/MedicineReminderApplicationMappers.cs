@@ -18,13 +18,11 @@ public partial class MedicineReminderApplicationMappers
     [MapProperty(new[] { nameof(AppUser.Name) }, new[] { nameof(UserDto.Name) })]
     [MapProperty(new[] { nameof(AppUser.Email) }, new[] { nameof(UserDto.Email) })]
     [MapProperty(new[] { nameof(AppUser.LastLogin) }, new[] { nameof(UserDto.LastLogin) })]
-    [MapProperty(new[] { nameof(AppUser.FcmToken) }, new[] { nameof(UserDto.FcmToken) })]
     public partial UserDto MapToDto(AppUser entity);
 
     [MapProperty(new[] { nameof(UserDto.Name) }, new[] { nameof(AppUser.Name) })]
     [MapProperty(new[] { nameof(UserDto.Email) }, new[] { nameof(AppUser.Email) })]
     [MapProperty(new[] { nameof(UserDto.LastLogin) }, new[] { nameof(UserDto.LastLogin) })]
-    [MapProperty(new[] { nameof(UserDto.FcmToken) }, new[] { nameof(AppUser.FcmToken) })]
     public partial AppUser MapToEntity(UserDto dto);
 
     // Medicine mappings

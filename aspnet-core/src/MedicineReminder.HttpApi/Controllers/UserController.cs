@@ -65,16 +65,6 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/user/me/fcm-token
-    /// Save FCM token for the current user
-    /// </summary>
-    [HttpPost("me/fcm-token")]
-    public async Task SaveFcmTokenAsync([FromBody] SaveFcmTokenDto input)
-    {
-        await _userAppService.SaveFcmTokenAsync(input);
-    }
-
-    /// <summary>
     /// GET /api/user/me/settings
     /// Get the current user's settings
     /// </summary>

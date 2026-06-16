@@ -29,9 +29,6 @@ public interface IUserAppService : IApplicationService
     // DELETE /api/user/me/account
     Task DeleteCurrentUserAccountAsync();
 
-    // POST /api/user/me/fcm-token
-    Task SaveFcmTokenAsync(Users.SaveFcmTokenDto input);
-
     // GET /api/user/me/settings
     Task<Settings.UserSettingsDto> GetCurrentUserSettingsAsync();
 

@@ -4,6 +4,7 @@ using MedicineReminder.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Volo.Abp.EntityFrameworkCore;
 
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace MedicineReminder.Migrations
 {
     [DbContext(typeof(MedicineReminderDbContext))]
-    partial class MedicineReminderDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260614182625_RemoveFcmTokenFromAppUser")]
+    partial class RemoveFcmTokenFromAppUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

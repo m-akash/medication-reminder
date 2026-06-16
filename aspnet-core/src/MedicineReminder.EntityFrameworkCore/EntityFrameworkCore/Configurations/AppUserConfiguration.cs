@@ -23,9 +23,6 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.HasIndex(x => x.Email)
             .IsUnique();
 
-        builder.Property(x => x.FcmToken)
-            .HasMaxLength(512);
-
         // Configure one-to-one relationship with UserSettings
         builder.HasOne(x => x.Settings)
             .WithOne(x => x.User)

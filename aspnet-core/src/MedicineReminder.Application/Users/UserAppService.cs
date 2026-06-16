@@ -139,15 +139,6 @@ public class UserAppService : MedicineReminderAppService, IUserAppService
     }
 
     [Authorize]
-    public async Task SaveFcmTokenAsync(SaveFcmTokenDto input)
-    {
-        var user = await GetCurrentUserEntityAsync();
-
-        user.FcmToken = input.TokenForNotification;
-        await _appUserRepository.UpdateAsync(user);
-    }
-
-    [Authorize]
     public async Task<UserSettingsDto> GetCurrentUserSettingsAsync()
     {
         var user = await GetCurrentUserEntityAsync();
@@ -233,8 +224,7 @@ public class UserAppService : MedicineReminderAppService, IUserAppService
             IdentityUserId = user.IdentityUserId,
             Name = user.Name,
             Email = user.Email,
-            LastLogin = user.LastLogin,
-            FcmToken = user.FcmToken
+            LastLogin = user.LastLogin
         };
     }
 }
