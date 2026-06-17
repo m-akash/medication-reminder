@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Emailing;
+using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -41,11 +42,23 @@ public class AccountAppService : Volo.Abp.Account.AccountAppService
         // Creates the ABP Identity user and returns its DTO.
         var userDto = await base.RegisterAsync(input);
 
+        // Read the display name the client sent as a "name" extension property.
+        // ABP's RegisterDto only exposes UserName/EmailAddress/Password/AppName,
+        // and the frontend sends the email as UserName, so we must not use that.
+        // The "name" property is registered as an extension on RegisterDto (see
+        // MedicineReminderApplicationModule.ConfigureObjectExtensions) so the
+        // model binder preserves the incoming JSON field into ExtraProperties.
+        var name = input.GetProperty<string>("name");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = input.EmailAddress;
+        }
+
         // Mirror the new Identity user into our custom profile entity.
         var appUser = new AppUser
         {
             IdentityUserId = userDto.Id,
-            Name = input.UserName,
+            Name = name,
             Email = input.EmailAddress,
             LastLogin = DateTime.UtcNow
         };

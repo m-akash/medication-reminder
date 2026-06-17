@@ -79,8 +79,10 @@ export class AuthService {
       appName: 'MedicineReminder',
       userName: email,
       emailAddress: email,
-      name,
-      password
+      password,
+      extraProperties: {
+        name
+      }
     }).pipe(
       switchMap(() => {
         // After successful registration, automatically login
