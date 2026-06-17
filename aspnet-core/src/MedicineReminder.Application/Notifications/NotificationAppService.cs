@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MedicineReminder.Application.Emailing;
 using MedicineReminder.Contracts.Services;
 using MedicineReminder.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -115,8 +116,9 @@ public class NotificationAppService : MedicineReminderAppService, INotificationA
         const string title = "Test notification";
         const string body = "If you can read this, email notifications are working! 🎉";
 
-        // Fire the email first.
-        await _emailSender.SendAsync(user.Email, title, body);
+        // Fire the email first (HTML template, isBodyHtml: true).
+        var email = EmailTemplates.TestNotification(user.Name);
+        await _emailSender.SendAsync(user.Email, email.Subject, email.HtmlBody, isBodyHtml: true);
 
         // Also persist an in-app notification so it shows up in the bell list.
         await _notificationRepository.InsertAsync(new Notification

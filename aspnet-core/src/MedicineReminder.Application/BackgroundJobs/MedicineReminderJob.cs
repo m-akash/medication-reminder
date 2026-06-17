@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using MedicineReminder.Application.Emailing;
 using MedicineReminder.Contracts.Settings;
 using MedicineReminder.Entities;
 using Microsoft.Extensions.Logging;
@@ -217,10 +218,12 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         {
             var body = string.Join(", ", group.Medicines.Select(m => $"{m.Name}{(!string.IsNullOrEmpty(m.Dosage) ? $" ({m.Dosage})" : "")}"));
 
-            // Send email reminder
-            var subject = $"Time for your {group.DoseTimeName} dose";
-            var message = $"It's time to take: {body}";
-            await SafeSendEmailAsync(group.User.Email, subject, message);
+            // Send email reminder (HTML template)
+            var reminderEmail = EmailTemplates.DoseReminder(
+                group.User.Name,
+                group.DoseTimeName,
+                group.Medicines.Select(m => new MedicineItem(m.Name, m.Dosage)).ToList());
+            await SafeSendEmailAsync(group.User.Email, reminderEmail);
 
             // Create in-app notification
             await CreateMedicineReminderNotification(
@@ -235,10 +238,12 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
         {
             var body = string.Join(", ", group.Medicines.Select(m => $"{m.Name}{(!string.IsNullOrEmpty(m.Dosage) ? $" ({m.Dosage})" : "")}"));
 
-            // Send email alert
-            var subject = "Missed Dose";
-            var message = $"You missed your {group.DoseTimeName.ToLower()} dose of: {body}";
-            await SafeSendEmailAsync(group.User.Email, subject, message);
+            // Send email alert (HTML template)
+            var missedEmail = EmailTemplates.MissedDose(
+                group.User.Name,
+                group.DoseTimeName,
+                group.Medicines.Select(m => new MedicineItem(m.Name, m.Dosage)).ToList());
+            await SafeSendEmailAsync(group.User.Email, missedEmail);
 
             // Create in-app notification
             await CreateMissedDoseNotification(
@@ -370,12 +375,12 @@ public class MedicineReminderJob : AsyncBackgroundJob<MedicineReminderJobArgs>
     /// scheduler run or skip the in-app notification that follows it. Mirrors the
     /// previous FCM behavior of logging failures and continuing.
     /// </summary>
-    private async Task SafeSendEmailAsync(string to, string subject, string body)
+    private async Task SafeSendEmailAsync(string to, EmailContent email)
     {
         try
         {
-            await _emailSender.SendAsync(to, subject, body);
-            _logger.LogInformation("[Scheduler] Email sent to {To}: {Subject}", to, subject);
+            await _emailSender.SendAsync(to, email.Subject, email.HtmlBody, isBodyHtml: true);
+            _logger.LogInformation("[Scheduler] Email sent to {To}: {Subject}", to, email.Subject);
         }
         catch (Exception ex)
         {
