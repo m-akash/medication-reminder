@@ -19,20 +19,16 @@ export interface UpdateUserDto {
 
 export interface NotificationSettings {
   enabled: boolean;
-  reminderAdvance: number;
   missedDoseAlerts: boolean;
   refillReminders: boolean;
   dailySummary: boolean;
 }
 
 export interface MedicineDefaults {
-  defaultDosesPerDay: number;
   defaultReminderTimes: string[];
-  defaultDurationDays: number;
 }
 
 export interface PrivacySettings {
-  dataSharing: boolean;
   analytics: boolean;
 }
 

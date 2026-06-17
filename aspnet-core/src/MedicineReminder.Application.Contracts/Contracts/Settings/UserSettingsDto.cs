@@ -18,7 +18,6 @@ public class UserSettingsDto
 public class NotificationSettingsDto
 {
     public bool Enabled { get; set; } = true;
-    public int ReminderAdvance { get; set; } = 30;
     public bool MissedDoseAlerts { get; set; } = true;
     public bool RefillReminders { get; set; } = true;
     public bool DailySummary { get; set; } = false;
@@ -29,9 +28,7 @@ public class NotificationSettingsDto
 /// </summary>
 public class MedicineDefaultsDto
 {
-    public int DefaultDosesPerDay { get; set; } = 1;
     public string[] DefaultReminderTimes { get; set; } = Array.Empty<string>();
-    public int DefaultDurationDays { get; set; } = 0;
 }
 
 /// <summary>
@@ -39,6 +36,5 @@ public class MedicineDefaultsDto
 /// </summary>
 public class PrivacySettingsDto
 {
-    public bool DataSharing { get; set; } = false;
     public bool Analytics { get; set; } = true;
 }

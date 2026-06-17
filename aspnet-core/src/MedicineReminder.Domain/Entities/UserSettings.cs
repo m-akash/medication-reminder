@@ -17,21 +17,21 @@ public class UserSettings : AuditedAggregateRoot<Guid>
 
     /// <summary>
     /// Notification settings stored as JSON
-    /// Example: {"enabled": true, "reminderAdvance": 30, "missedDoseAlerts": true, "refillReminders": true, "dailySummary": false}
+    /// Example: {"enabled": true, "missedDoseAlerts": true, "refillReminders": true, "dailySummary": false}
     /// </summary>
     [Required]
     public string NotificationsJson { get; set; } = "{}";
 
     /// <summary>
     /// Medicine default settings stored as JSON
-    /// Example: {"defaultDosesPerDay": 1, "defaultReminderTimes": ["08:00", "14:00", "20:00"], "defaultDurationDays": 0}
+    /// Example: {"defaultReminderTimes": ["08:00", "14:00", "20:00"]}
     /// </summary>
     [Required]
     public string MedicineDefaultsJson { get; set; } = "{}";
 
     /// <summary>
     /// Privacy settings stored as JSON
-    /// Example: {"dataSharing": false, "analytics": true}
+    /// Example: {"analytics": true}
     /// </summary>
     [Required]
     public string PrivacyJson { get; set; } = "{}";

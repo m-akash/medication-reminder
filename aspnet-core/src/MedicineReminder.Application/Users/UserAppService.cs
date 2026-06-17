@@ -153,20 +153,16 @@ public class UserAppService : MedicineReminderAppService, IUserAppService
                 Notifications = new NotificationSettingsDto
                 {
                     Enabled = true,
-                    ReminderAdvance = 30,
                     MissedDoseAlerts = true,
                     RefillReminders = true,
                     DailySummary = false
                 },
                 MedicineDefaults = new MedicineDefaultsDto
                 {
-                    DefaultDosesPerDay = 1,
-                    DefaultReminderTimes = new[] { "08:00", "14:00", "20:00" },
-                    DefaultDurationDays = 0
+                    DefaultReminderTimes = new[] { "08:00", "14:00", "20:00" }
                 },
                 Privacy = new PrivacySettingsDto
                 {
-                    DataSharing = false,
                     Analytics = true
                 }
             };

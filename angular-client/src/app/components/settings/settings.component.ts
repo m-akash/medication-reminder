@@ -52,21 +52,6 @@ import { AuthService } from '../../services/auth.service';
                     </label>
                   </div>
 
-                  <!-- Reminder Advance -->
-                  <div class="form-control bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm space-y-2">
-                    <label class="label p-0 flex flex-col items-start gap-1">
-                      <span class="label-text font-bold text-gray-700">Reminder Advance Time</span>
-                      <span class="label-text-alt text-gray-400">Minutes before scheduled dose time</span>
-                    </label>
-                    <input
-                      type="number"
-                      formControlName="notifications_reminderAdvance"
-                      class="input input-bordered w-full max-w-xs rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all mt-1"
-                      min="0"
-                      max="60"
-                    />
-                  </div>
-
                   <!-- Missed Dose Alerts -->
                   <div class="form-control">
                     <label class="label cursor-pointer flex justify-between items-center bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm">
@@ -112,20 +97,6 @@ import { AuthService } from '../../services/auth.service';
                 </h2>
 
                 <div class="space-y-4">
-                  <!-- Default Doses Per Day -->
-                  <div class="form-control bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm space-y-2">
-                    <label class="label p-0">
-                      <span class="label-text font-bold text-gray-700">Default Doses Per Day</span>
-                    </label>
-                    <input
-                      type="number"
-                      formControlName="medicineDefaults_defaultDosesPerDay"
-                      class="input input-bordered w-full max-w-xs rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all mt-1"
-                      min="1"
-                      max="3"
-                    />
-                  </div>
-
                   <!-- Default Reminder Times -->
                   <div class="form-control bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm space-y-2">
                     <label class="label p-0 flex flex-col items-start gap-1">
@@ -142,23 +113,6 @@ import { AuthService } from '../../services/auth.service';
                       <span class="label-text-alt text-xs text-gray-400">Example: 08:00, 14:00, 20:00 for 8 AM, 2 PM, 8 PM</span>
                     </label>
                   </div>
-
-                  <!-- Default Duration Days -->
-                  <div class="form-control bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm space-y-2">
-                    <label class="label p-0">
-                      <span class="label-text font-bold text-gray-700">Default Duration (Days)</span>
-                    </label>
-                    <input
-                      type="number"
-                      formControlName="medicineDefaults_defaultDurationDays"
-                      class="input input-bordered w-full max-w-xs rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all mt-1"
-                      min="0"
-                      placeholder="0 for ongoing"
-                    />
-                    <label class="label p-0">
-                      <span class="label-text-alt text-xs text-gray-400">Enter 0 for ongoing medications</span>
-                    </label>
-                  </div>
                 </div>
               </div>
 
@@ -172,17 +126,6 @@ import { AuthService } from '../../services/auth.service';
                 </h2>
 
                 <div class="space-y-4">
-                  <!-- Data Sharing -->
-                  <div class="form-control">
-                    <label class="label cursor-pointer flex justify-between items-center bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm">
-                      <div class="flex flex-col">
-                        <span class="label-text font-bold text-gray-700">Data Sharing</span>
-                        <span class="label-text-alt text-gray-400 mt-0.5">Allow anonymous data sharing for research</span>
-                      </div>
-                      <input type="checkbox" formControlName="privacy_dataSharing" class="toggle toggle-primary toggle-md" />
-                    </label>
-                  </div>
-
                   <!-- Analytics -->
                   <div class="form-control">
                     <label class="label cursor-pointer flex justify-between items-center bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm">
@@ -253,7 +196,7 @@ import { AuthService } from '../../services/auth.service';
                   <span class="text-gray-500 text-sm font-semibold">Email</span>
                   <span class="font-bold text-gray-800 text-xs">{{ getCurrentUserEmail() }}</span>
                 </div>
-                <button
+                <!-- <button
                   (click)="sendTestNotification()"
                   [disabled]="isSendingTest"
                   class="btn btn-sm btn-outline btn-primary hover:bg-indigo-500 hover:text-white rounded-xl w-full font-bold transition-all py-2 h-auto"
@@ -264,7 +207,7 @@ import { AuthService } from '../../services/auth.service';
                   } @else {
                     Send Test Notification
                   }
-                </button>
+                </button> -->
                 <button (click)="logout()" class="btn btn-sm btn-error btn-outline hover:bg-red-500 hover:text-white rounded-xl w-full font-bold transition-all py-2 h-auto">
                   Logout
                 </button>
@@ -301,16 +244,12 @@ export class SettingsComponent implements OnInit {
     this.settingsForm = this.fb.group({
       // Notification settings
       notifications_enabled: [true],
-      notifications_reminderAdvance: [30],
       notifications_missedDoseAlerts: [true],
       notifications_refillReminders: [true],
       notifications_dailySummary: [false],
       // Medicine defaults
-      medicineDefaults_defaultDosesPerDay: [1],
       medicineDefaults_defaultReminderTimes: ['08:00, 14:00, 20:00'],
-      medicineDefaults_defaultDurationDays: [0],
       // Privacy settings
-      privacy_dataSharing: [false],
       privacy_analytics: [true]
     });
   }
@@ -330,14 +269,10 @@ export class SettingsComponent implements OnInit {
       next: (settings) => {
         this.settingsForm.patchValue({
           notifications_enabled: settings.notifications.enabled,
-          notifications_reminderAdvance: settings.notifications.reminderAdvance,
           notifications_missedDoseAlerts: settings.notifications.missedDoseAlerts,
           notifications_refillReminders: settings.notifications.refillReminders,
           notifications_dailySummary: settings.notifications.dailySummary,
-          medicineDefaults_defaultDosesPerDay: settings.medicineDefaults.defaultDosesPerDay,
           medicineDefaults_defaultReminderTimes: settings.medicineDefaults.defaultReminderTimes.join(', '),
-          medicineDefaults_defaultDurationDays: settings.medicineDefaults.defaultDurationDays,
-          privacy_dataSharing: settings.privacy.dataSharing,
           privacy_analytics: settings.privacy.analytics
         });
       },
@@ -361,18 +296,14 @@ export class SettingsComponent implements OnInit {
     const settings: UpdateUserSettingsDto = {
       notifications: {
         enabled: formValue.notifications_enabled,
-        reminderAdvance: formValue.notifications_reminderAdvance,
         missedDoseAlerts: formValue.notifications_missedDoseAlerts,
         refillReminders: formValue.notifications_refillReminders,
         dailySummary: formValue.notifications_dailySummary
       },
       medicineDefaults: {
-        defaultDosesPerDay: formValue.medicineDefaults_defaultDosesPerDay,
-        defaultReminderTimes: formValue.medicineDefaults_defaultReminderTimes.split(',').map((time: string) => time.trim()),
-        defaultDurationDays: formValue.medicineDefaults_defaultDurationDays
+        defaultReminderTimes: formValue.medicineDefaults_defaultReminderTimes.split(',').map((time: string) => time.trim())
       },
       privacy: {
-        dataSharing: formValue.privacy_dataSharing,
         analytics: formValue.privacy_analytics
       }
     };
