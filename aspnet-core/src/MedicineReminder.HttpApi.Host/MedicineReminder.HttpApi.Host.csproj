@@ -44,4 +44,13 @@
     <None Remove="Logs\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- OpenIddict production signing/encryption certificate. Required for token
+         signing in production. Gitignored (secrets) but must reach publish output. -->
+    <None Update="openiddict.pfx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -14,6 +14,11 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Remove="appsettings.Production.json" />
+    <Content Include="appsettings.Production.json">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Remove="appsettings.secrets.json" />
     <Content Include="appsettings.secrets.json">
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
@@ -31,6 +36,11 @@
 
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Autofac" Version="10.1.1" />
+    <!-- OpenIddict domain is required so the DbMigrator can seed client apps
+         (MedicineReminder_App, MedicineReminder_Swagger) and scopes. Without it,
+         the OpenIddictDataSeedContributor dependencies fail to resolve and no apps
+         are created, which breaks production login. -->
+    <PackageReference Include="Volo.Abp.OpenIddict.Domain" Version="10.1.1" />
     <ProjectReference Include="..\MedicineReminder.Application.Contracts\MedicineReminder.Application.Contracts.csproj" />
     <ProjectReference Include="..\MedicineReminder.EntityFrameworkCore\MedicineReminder.EntityFrameworkCore.csproj" />
   </ItemGroup>

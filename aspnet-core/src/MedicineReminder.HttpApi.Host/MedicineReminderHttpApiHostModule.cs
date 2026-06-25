@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.Dashboard;
@@ -9,6 +11,8 @@ using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,6 +22,7 @@ using MedicineReminder.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.LeptonXLite.Bundling;
 using Microsoft.OpenApi;
+using OpenIddict.Server;
 using OpenIddict.Validation.AspNetCore;
 using Volo.Abp;
 using Volo.Abp.Account;
@@ -30,6 +35,7 @@ using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
+using Volo.Abp.OpenIddict;
 using Volo.Abp.Security.Claims;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.UI.Navigation.Urls;
@@ -52,6 +58,43 @@ public class MedicineReminderHttpApiHostModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
+        var hostingEnvironment = context.Services.GetHostingEnvironment();
+        var configuration = context.Services.GetConfiguration();
+
+        // In production, ABP's dev encryption/signing certificate is disabled and
+        // a real X.509 certificate (openiddict.pfx) is used instead. Without it,
+        // token signing/encryption fails in prod and login breaks.
+        // For IIS (MonsterASP Windows) the MachineKeySet flag is required.
+        if (!hostingEnvironment.IsDevelopment())
+        {
+            PreConfigure<AbpOpenIddictAspNetCoreOptions>(options =>
+            {
+                options.AddDevelopmentEncryptionAndSigningCertificate = false;
+            });
+
+            PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
+            {
+                var pfxPath = configuration["OpenIddict:PfxPath"] ?? "openiddict.pfx";
+                var pfxPassword = configuration["OpenIddict:PfxPassword"]
+                                  ?? throw new InvalidOperationException(
+                                      "OpenIddict:PfxPassword is not set in the production appsettings.");
+                serverBuilder.AddProductionEncryptionAndSigningCertificate(
+                    pfxPath,
+                    pfxPassword,
+                    X509KeyStorageFlags.MachineKeySet);
+
+                // When running over HTTP (free hosting, no HTTPS) OpenIddict's
+                // transport-security (HTTPS) requirement must be disabled. This is
+                // INSECURE - passwords/tokens travel in plaintext. Only use when no
+                // HTTPS is available. Set App:AllowHttp to false once HTTPS is on.
+                if (configuration.GetValue("App:AllowHttp", false))
+                {
+                    serverBuilder.UseAspNetCore()
+                        .DisableTransportSecurityRequirement();
+                }
+            });
+        }
+
         PreConfigure<OpenIddictBuilder>(builder =>
         {
             builder.AddValidation(options =>
@@ -219,6 +262,9 @@ public class MedicineReminderHttpApiHostModule : AbpModule
         }
 
         app.UseCorrelationId();
+        // Serve the Angular build output (root-level hashed JS/CSS/assets) from wwwroot.
+        // MapAbpStaticAssets handles ABP's own MVC theme assets (libs/, images/).
+        app.UseStaticFiles();
         app.MapAbpStaticAssets();
         app.UseRouting();
         app.UseCors();
@@ -249,19 +295,68 @@ public class MedicineReminderHttpApiHostModule : AbpModule
             job => job.ExecuteAsync(new MedicineReminderJobArgs()),
             "*/5 * * * *"); // Cron expression: every 5 minutes
 
-        app.UseSwagger();
-        app.UseAbpSwaggerUI(c =>
+        // Swagger only in Development. In production Swagger is off - that way the
+        // root '/' serves the Angular UI (avoids Swagger's / -> /swagger redirect)
+        // and the API docs are not exposed publicly. Remove the env condition to
+        // enable Swagger in production.
+        if (env.IsDevelopment())
         {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "MedicineReminder API");
+            app.UseSwagger();
+            app.UseAbpSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "MedicineReminder API");
 
-            var configuration = context.ServiceProvider.GetRequiredService<IConfiguration>();
-            c.OAuthClientId(configuration["AuthServer:SwaggerClientId"]);
-            c.OAuthScopes("MedicineReminder");
-        });
+                var configuration = context.ServiceProvider.GetRequiredService<IConfiguration>();
+                c.OAuthClientId(configuration["AuthServer:SwaggerClientId"]);
+                c.OAuthScopes("MedicineReminder");
+            });
+        }
 
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
-        app.UseConfiguredEndpoints();
+        app.UseConfiguredEndpoints(endpoints =>
+        {
+            // Shared logic for serving the Angular index.html.
+            static async Task ServeAngularIndex(HttpContext httpContext)
+            {
+                var env = httpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+                var indexFile = Path.Combine(env.WebRootPath ?? "wwwroot", "index.html");
+                if (!File.Exists(indexFile))
+                {
+                    httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    await httpContext.Response.WriteAsync("Angular build not found in wwwroot. Run deploy/build-and-copy.sh.");
+                    return;
+                }
+
+                httpContext.Response.StatusCode = StatusCodes.Status200OK;
+                httpContext.Response.ContentType = "text/html; charset=utf-8";
+                await httpContext.Response.SendFileAsync(indexFile);
+            }
+
+            // Explicitly map root '/' to the Angular index so that another
+            // middleware (e.g. Swagger's / -> /swagger redirect) does not claim it.
+            // In a single-domain setup '/' shows the Angular UI.
+            endpoints.MapGet("/", ServeAngularIndex);
+
+            // SPA fallback: route any remaining unmatched (non-API) GET request to the
+            // Angular index.html so that client-side routing (deep links / refresh)
+            // does not 404. Backend routes (/api, /connect, /hangfire, /swagger) are
+            // matched earlier and never reach this; the guard is defense-in-depth.
+            endpoints.MapFallback(async httpContext =>
+            {
+                var path = httpContext.Request.Path.Value ?? string.Empty;
+                if (path.StartsWith("/api", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith("/connect", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith("/hangfire", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase))
+                {
+                    httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+
+                await ServeAngularIndex(httpContext);
+            });
+        });
     }
 }
 

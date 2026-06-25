@@ -6,6 +6,7 @@
 # === Secrets / credentials (NEVER commit) ===
 **/appsettings.secrets.json
 **/appsettings.Local.json
+**/appsettings.Production.json
 **/secrets.json
 *.pfx
 *.p12
@@ -31,6 +32,14 @@ desktop.ini
 .idea/
 .vs/
 .vscode/*
+# Claude Code session files (local only, not project code)
+.claude/
+
+# === Build outputs (deploy artifacts) ===
+# dotnet publish output - deploy only, never committed
+deploy/publish-output/
+# Angular dist output
+angular-client/dist/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -48,6 +57,19 @@ desktop.ini
 *.exe
 TestResults/
 project.lock.json
+
+# Angular build output merged into backend wwwroot (single-domain deploy).
+# Only the hashed/vendored bundle artifacts are ignored; ABP's own
+# wwwroot assets (libs/, images/, global-styles.css) stay committed.
+**/MedicineReminder.HttpApi.Host/wwwroot/*.js
+**/MedicineReminder.HttpApi.Host/wwwroot/*.js.map
+**/MedicineReminder.HttpApi.Host/wwwroot/*.css
+**/MedicineReminder.HttpApi.Host/wwwroot/*.css.map
+**/MedicineReminder.HttpApi.Host/wwwroot/index.html
+**/MedicineReminder.HttpApi.Host/wwwroot/favicon.ico
+**/MedicineReminder.HttpApi.Host/wwwroot/prerendered-routes.json
+**/MedicineReminder.HttpApi.Host/wwwroot/*.txt
+!**/MedicineReminder.HttpApi.Host/wwwroot/global-styles.css
 
 # === Angular / Node ===
 **/node_modules/
