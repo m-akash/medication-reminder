@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────────
+# Dockerfile.DbMigrator — one-off database migrator / seeder
+#
+# Builds MedicineReminder.DbMigrator (creates + migrates the schema and
+# seeds OpenIddict apps/roles/admin). Run it once against a fresh database
+# (e.g. via `docker compose --profile migrate up dbmigrator`).
+#
+# Build:
+#   docker build -f Dockerfile.DbMigrator -t medicinereminder-migrator .
+# ─────────────────────────────────────────────────────────────────────
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+WORKDIR /src
+
+COPY aspnet-core/MedicineReminder.slnx ./
+COPY aspnet-core/NuGet.Config ./
+COPY aspnet-core/common.props ./
+COPY aspnet-core/src/MedicineReminder.Domain.Shared/MedicineReminder.Domain.Shared.csproj src/MedicineReminder.Domain.Shared/
+COPY aspnet-core/src/MedicineReminder.Domain/MedicineReminder.Domain.csproj src/MedicineReminder.Domain/
+COPY aspnet-core/src/MedicineReminder.Application.Contracts/MedicineReminder.Application.Contracts.csproj src/MedicineReminder.Application.Contracts/
+COPY aspnet-core/src/MedicineReminder.Application/MedicineReminder.Application.csproj src/MedicineReminder.Application/
+COPY aspnet-core/src/MedicineReminder.EntityFrameworkCore/MedicineReminder.EntityFrameworkCore.csproj src/MedicineReminder.EntityFrameworkCore/
+COPY aspnet-core/src/MedicineReminder.DbMigrator/MedicineReminder.DbMigrator.csproj src/MedicineReminder.DbMigrator/
+
+RUN dotnet restore src/MedicineReminder.DbMigrator/MedicineReminder.DbMigrator.csproj
+
+COPY aspnet-core/ ./
+
+WORKDIR /src/src/MedicineReminder.DbMigrator
+RUN dotnet publish MedicineReminder.DbMigrator.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+
+RUN addgroup --system app && adduser --system --ingroup app app
+WORKDIR /app
+COPY --from=build /app/publish ./
+RUN chown -R app:app /app
+USER app
+
+# Connection string is injected at runtime via the ConnectionStrings__Default
+# environment variable (compose maps it onto appsettings).
+ENTRYPOINT ["dotnet", "MedicineReminder.DbMigrator.dll"]

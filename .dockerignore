@@ -1,0 +1,32 @@
+# Build outputs & caches
+**/bin/
+**/obj/
+**/dist/
+angular-client/node_modules/
+angular-client/.angular/
+
+# Logs
+**/Logs/
+*.log
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+
+# Local secrets & user settings
+**/appsettings.secrets.json
+**/appsettings.Local.json
+aspnet-core/**/.user
+aspnet-core/*.sln.DotSettings
+
+# Tests — not needed in the runtime image
+aspnet-core/test/
+
+# Git
+.git/
+.gitignore
+
+# Already-built publish artifacts (avoid stale copies)
+deploy/publish-output/
