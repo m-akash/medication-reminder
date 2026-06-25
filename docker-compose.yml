@@ -1,0 +1,85 @@
+# ─────────────────────────────────────────────────────────────────────
+# docker-compose.yml — MedicineReminder (single-domain deploy)
+#
+# Brings up:
+#   - sqlserver   : SQL Server database
+#   - dbmigrator  : one-off migrator + seeder (runs, then exits)
+#   - app         : ABP HttpApi.Host serving SPA + API on :8080
+#
+# Usage:
+#   cp .env.example .env   # then edit values
+#   docker compose --profile migrate up --build dbmigrator   # run once
+#   docker compose up --build app                             # then start app
+#   open http://localhost:${APP_PORT:-8080}
+# ─────────────────────────────────────────────────────────────────────
+
+services:
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SQL_PASSWORD:?SQL_PASSWORD must be set in .env}
+    ports:
+      - "${SQL_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SQL_PASSWORD}", "-C", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ── One-off migrator/seeder ────────────────────────────────────────
+  # Depends on a healthy DB. Exits 0 when done; run via the `migrate` profile.
+  dbmigrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.DbMigrator
+    profiles: ["migrate"]
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Server=sqlserver;Database=${SQL_DATABASE:-MedicineReminderDb};User ID=sa;Password=${SQL_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+
+  # ── Application (SPA + API) ────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_HTTP_PORTS: "8080"
+      # Hierarchical config via __-separated env vars (ASP.NET Core binds these).
+      ConnectionStrings__Default: "Server=sqlserver;Database=${SQL_DATABASE:-MedicineReminderDb};User ID=sa;Password=${SQL_PASSWORD};TrustServerCertificate=True;Encrypt=False"
+      OpenIddict__PfxPath: "/app/certs/openiddict.pfx"
+      OpenIddict__PfxPassword: "${OPENIDDICT_PFX_PASSWORD:?OPENIDDICT_PFX_PASSWORD must be set in .env}"
+      # SPA + API on plain HTTP (no TLS terminator here). Disable OpenIddict's
+      # transport-security requirement accordingly. INSECURE — terminate TLS
+      # in a reverse proxy and set App__AllowHttp=false for production.
+      App__AllowHttp: "true"
+      # ABP mailing settings (Settings:Abp.Mailing.Smtp.*).
+      Settings__Abp__Mailing__DefaultFromAddress: "${SMTP_FROM_ADDRESS:-yourmedicationreminder@gmail.com}"
+      Settings__Abp__Mailing__DefaultFromDisplayName: "${SMTP_FROM_NAME:-Medicine Reminder}"
+      Settings__Abp__Mailing__Smtp__Host: "${SMTP_HOST:-smtp.gmail.com}"
+      Settings__Abp__Mailing__Smtp__Port: "${SMTP_PORT:-587}"
+      Settings__Abp__Mailing__Smtp__UserName: "${SMTP_USER:-yourmedicationreminder@gmail.com}"
+      Settings__Abp__Mailing__Smtp__Password: "${SMTP_PASSWORD:?SMTP_PASSWORD must be set in .env}"
+      Settings__Abp__Mailing__Smtp__EnableSsl: "true"
+      Settings__Abp__Mailing__Smtp__UseDefaultCredentials: "false"
+    volumes:
+      # Mount the OpenIddict signing/encryption cert (must NOT be in the image).
+      - ${OPENIDDICT_PFX_PATH:?OPENIDDICT_PFX_PATH must point at your .pfx in .env}:/app/certs/openiddict.pfx:ro
+      - app-logs:/app/Logs
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+  app-logs:
