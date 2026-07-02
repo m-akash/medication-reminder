@@ -1,4 +1,4 @@
-# 💊 Medicine Reminder
+# Medicine Reminder
 
 A production-ready **medication adherence** application that helps users track their prescriptions, never miss a dose, and stay on top of refills. Built on the **ABP Framework** with a .NET backend and an Angular SPA frontend, deployable as a single self-contained web app.
 
@@ -6,7 +6,7 @@ A production-ready **medication adherence** application that helps users track t
 
 ---
 
-## ✨ Features
+## Features
 
 ### Medication management
 - **Add & edit medicines** with name, dosage (e.g. `500mg`, `1 tablet`), treatment duration, instructions, and pill inventory.
@@ -38,7 +38,7 @@ A production-ready **medication adherence** application that helps users track t
 
 ---
 
-## 🧱 Tech stack
+## Tech stack
 
 | Layer | Technology |
 | --- | --- |
@@ -54,7 +54,7 @@ A production-ready **medication adherence** application that helps users track t
 
 ---
 
-## 📁 Solution structure
+## Solution structure
 
 ```
 medication-reminder/
@@ -67,7 +67,7 @@ medication-reminder/
 │       ├── MedicineReminder.EntityFrameworkCore      # EF Core / SQL Server data layer
 │       ├── MedicineReminder.HttpApi           # API controllers
 │       ├── MedicineReminder.HttpApi.Client    # C# API client
-│       ├── MedicineReminder.HttpApi.Host      # 🚀 main host (serves API + Angular SPA)
+│       ├── MedicineReminder.HttpApi.Host      # main host (serves API + Angular SPA)
 │       └── MedicineReminder.DbMigrator        # console app: migrate + seed DB
 ├── angular-client/                  # Angular 19 SPA
 ├── Dockerfile                       # multi-stage: builds Angular + .NET, single-domain serve
@@ -90,7 +90,7 @@ medication-reminder/
 
 ---
 
-## 🚀 Getting started
+## Getting started
 
 ### Prerequisites
 - **.NET 10 SDK**
@@ -146,7 +146,7 @@ The compose stack spins up SQL Server, runs the DbMigrator, and serves the whole
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### `appsettings.json` (HttpApi.Host)
 - **Connection string** — SQL Server target.
@@ -161,7 +161,7 @@ See [.env.example](.env.example) for all variables: `SQL_PASSWORD`, `SQL_DATABAS
 
 ---
 
-## 🔔 How the reminder engine works
+## How the reminder engine works
 
 The scheduler (`MedicineReminderJob`) is the heart of the app:
 
@@ -177,7 +177,7 @@ The scheduler (`MedicineReminderJob`) is the heart of the app:
 
 ---
 
-## 🛠️ Useful scripts
+## Useful scripts
 
 - [deploy/build-and-copy.sh](deploy/build-and-copy.sh) — builds the Angular production bundle and merges it into the backend `wwwroot`, so the HttpApi.Host can serve the SPA on a single domain.
 - `Dockerfile` / `Dockerfile.DbMigrator` — container builds for the app and the migrator.
